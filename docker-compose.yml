@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  vrptw-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: python_vrptw_service
+    ports:
+      - "8000:8000"
+    volumes:
+      # Проброс папок: изменения в Windows сразу видны в Linux
+      - ./app:/code/app
+      - ./data:/code/data
+    environment:
+      # Глобальные настройки (URL сервисов)
+      - OSRM_URL=http://router.project-osrm.org
+      - NOMINATIM_URL=https://nominatim.openstreetmap.org/search
+      - ENVIRONMENT=development
+    restart: unless-stopped
