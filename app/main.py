@@ -132,10 +132,17 @@ async def optimize_route(request: OptimizationRequest):
             current_dt = departure_dt
 
         ordered_points_obj = [points_dict[pid] for pid in route_ids]
-        route_geometry = await utils.get_route_geometry(ordered_points_obj)
+        route_geometry = None
+        try:
+            route_geometry = await utils.get_route_geometry(ordered_points_obj)
+        except Exception as e:
+            print(f"[OSRM Route Error] Не удалось получить геометрию маршрута: {e}")
         gpx_data = None
         if request.need_gpx:
-            gpx_data = utils.generate_gpx_base64(ordered_points_obj, final_route, route_geometry)
+            try:
+                gpx_data = utils.generate_gpx_base64(ordered_points_obj, final_route, route_geometry)
+            except Exception as e:
+                print(f"[GPX Error] Не удалось сформировать GPX: {e}")
         total_dist = ga_result["total_distance_meters"]
         if math.isinf(total_dist):
             raise HTTPException(status_code=400, detail="К одной из точек нет автомобильной дороги.")
