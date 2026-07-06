@@ -9,6 +9,13 @@ from typing import List, Dict
 OSRM_URL = os.getenv('OSRM_URL', 'http://router.project-osrm.org')
 
 
+def _append_track_points(gpx_track: gpxpy.gpx.GPXTrack, points: List) -> None:
+    gpx_segment = gpxpy.gpx.GPXTrackSegment()
+    gpx_track.segments.append(gpx_segment)
+    for point in points:
+        gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(latitude=point.lat, longitude=point.lon))
+
+
 async def get_route_geometry(ordered_points: List) -> Dict:
     coords = ";".join([f"{p.lon},{p.lat}" for p in ordered_points])
     url = f"{OSRM_URL}/route/v1/driving/{coords}?overview=full&geometries=geojson"
@@ -45,12 +52,15 @@ def generate_gpx_base64(ordered_points: List, schedule: List, geometry_geojson: 
         wp.description = f"Прибытие: {arr}\nУбытие: {dep}"
         gpx.waypoints.append(wp)
 
-    if geometry_geojson and 'coordinates' in geometry_geojson:
-        gpx_track = gpxpy.gpx.GPXTrack(name="Маршрут VRPTW")
-        gpx.tracks.append(gpx_track)
+    gpx_track = gpxpy.gpx.GPXTrack(name="Маршрут VRPTW")
+    gpx.tracks.append(gpx_track)
+    if geometry_geojson and 'coordinates' in geometry_geojson and geometry_geojson['coordinates']:
         gpx_segment = gpxpy.gpx.GPXTrackSegment()
         gpx_track.segments.append(gpx_segment)
         for lon, lat in geometry_geojson['coordinates']:
             gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(latitude=lat, longitude=lon))
+    else:
+        _append_track_points(gpx_track, ordered_points)
+
     xml_string = gpx.to_xml()
     return base64.b64encode(xml_string.encode('utf-8')).decode('utf-8')
